@@ -25,7 +25,7 @@ Occ$SpeciesID <- unlist(lapply(strsplit(Occ$SpeciesID, " "), function(x) paste(x
 
 
 # Modelling loop ----
-#### test with fo reach ####
+#### test with foreach ####
 
 # Saving directory
 path = "~/stage_ssdm/test2/results/ESDM_final" 
@@ -38,7 +38,7 @@ n_species <- length(species)
 
 cores = detectCores()-1 # Number of cores
 cat('Opening clusters,', cores, 'cores \n')
-cl <- makeCluster(cores)
+cl <- makeCluster(cores,outfile = "")
 registerDoSNOW(cl)
 clusterEvalQ(cl, library(SSDM))
 clusterEvalQ(cl, library(rgeos))
