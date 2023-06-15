@@ -39,6 +39,21 @@ data_test_100sp = data_test_100sp[order(data_test_100sp$SPECIES),]
 
 data_final2 = read.csv2("D:/Vanessa/Mes Documents/Stage Manon C/r/final_1/data_final2.csv")
 liste = unique( data_final2$SPECIES)
+# > liste[1]
+# [1] "Abebaia dissecta"
+# > liste[2]
+# [1] "Acacia simplex"
+# > liste[3]
+# [1] "Acacia spirorbis"
+# > liste[4]
+# [1] "Achilleanthus glabrescens"
+# > liste[5]
+# [1] "Achilleanthus ngoyensis"
+# > liste[6]
+# [1] "Acmopyle pancheri"
+# > liste[7]
+# [1] "Acridocarpus austrocaledonicus"
+
 
 data_test_3sp = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/data_test_3sp.rds")
 table(data_test_3sp$SPECIES)

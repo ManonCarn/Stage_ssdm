@@ -31,6 +31,9 @@ Occ$SpeciesID <- unlist(lapply(strsplit(Occ$SpeciesID, " "), function(x) paste(x
 path = "~/stage_ssdm/test2/results/ESDM_final" 
 # Clustering parameters 
 
+sp_done <- list.files(path)
+Occ <- Occ[!Occ$SpeciesID %in% sp_done,] 
+
 library(doSNOW)
 # Loop accross all species in the occurrences dataset
 species <- levels(as.factor(Occ$SpeciesID))
@@ -72,6 +75,7 @@ stopCluster(cl)
 
 time_ESDM = (Sys.time() - startTime)
 print(time_ESDM)
+                                                                                                                             
 
 
 # Loop for loading all the ESDM in a directory ----
