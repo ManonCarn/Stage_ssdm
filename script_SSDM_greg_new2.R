@@ -25,7 +25,7 @@ Occ$SpeciesID <- unlist(lapply(strsplit(Occ$SpeciesID, " "), function(x) paste(x
 
 
 # Modelling loop ----
-#### test with foreach ####
+#### test with fo reach ####
 
 # Saving directory
 path = "~/stage_ssdm/test2/results/ESDM_final" 
