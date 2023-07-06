@@ -1,6 +1,19 @@
 ################################################################################
 #### ESDM ON SERVEUR TEST GREG ####
 ################################################################################
+
+#### Clean cash 
+# Dans R:     
+# clear temp files
+tmp_dir <- tempdir()
+unlink(tmp_dir, recursive = TRUE)
+
+
+# Dans le terminal (connecté sous greg@niamoto) :
+# sudo sh -c 'echo 1 >/proc/sys/vm/drop_caches'
+
+
+
 library(methods)
 library(raster)
 library(SSDM)
@@ -43,7 +56,7 @@ Occ <- Occ[!Occ$SpeciesID %in% sp_done,]
 #### try with parrallel on species with forked parallel  ####
 # Clustering parameters 
 # cores_use = detectCores()-1 # Number of cores
-cores_use = 5
+cores_use = 9
 # Loop accross all species in the occurrences dataset
 species = levels(as.factor(Occ$SpeciesID))
 startTime = Sys.time()
@@ -92,7 +105,7 @@ names(list_all_esdm) <- NULL
 
 # ESDM Stacking ----
 # define stacking arguments for methods
-list_methods_stacking <- list(name = NULL, method = "pSSDM", rep.B = 1000,
+t_methods_stacking <- list(name = NULL, method = "pSSDM", rep.B = 1000,
                               Env = NULL, range = NULL, endemism = c("WEI", "Binary"),
                               eval = TRUE, verbose = TRUE, GUI = FALSE)
 # stacking based on esdms list
