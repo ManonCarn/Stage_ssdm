@@ -7,10 +7,13 @@
 # clear temp files
 tmp_dir <- tempdir()
 unlink(tmp_dir, recursive = TRUE)
-
+q()
 
 # Dans le terminal (connecté sous greg@niamoto) :
 # sudo sh -c 'echo 1 >/proc/sys/vm/drop_caches'
+
+# Compter nb fichiers sell 
+ls -1 | wc -l
 
 
 
@@ -20,7 +23,6 @@ library(SSDM)
 library(parallel)
 library(doSNOW)
 # library(rgdal)
-
 
 # Load environmental dataset and occurences dataset ----
 # environmental dataset 
@@ -44,6 +46,8 @@ occ_path = "~/stage_ssdm/final/data/"
 # saveRDS(Occ, file = paste0(occ_path, "/data_final2_thinning"))
 # load 
 Occ <- readRDS(file = paste0(occ_path, "/data_final2_thinning.rds"))
+# Occ <- readRDS(file = paste0(occ_path, "/data_final2_thinning_arranged.rds"))
+
 
 
 # Modelling loop ----
@@ -94,7 +98,7 @@ environment(load_esdm_modif) <- environment(load_esdm)
 # The call to assignInNamespace() assures that other functions from the package will call your updated version of the function.
 assignInNamespace("load_esdm", load_esdm_modif, ns = "SSDM")
 # load directory
-path_load = '~/stage_ssdm/final/results/ESDM'
+path_load = '~/stage_ssdm/final/results/ESDM_copie'
 all_esdm_names <- list.files(path_load)
 # apply function (modified) to load all esdms
 list_all_esdm <- sapply(all_esdm_names, function(x) load_esdm_modif(x, path_load))
@@ -105,7 +109,7 @@ names(list_all_esdm) <- NULL
 
 # ESDM Stacking ----
 # define stacking arguments for methods
-t_methods_stacking <- list(name = NULL, method = "pSSDM", rep.B = 1000,
+list_methods_stacking <- list(name = NULL, method = "bSSDM", rep.B = 1000,
                               Env = NULL, range = NULL, endemism = c("WEI", "Binary"),
                               eval = TRUE, verbose = TRUE, GUI = FALSE)
 # stacking based on esdms list
@@ -113,12 +117,12 @@ t_methods_stacking <- list(name = NULL, method = "pSSDM", rep.B = 1000,
 
 stack_final <- do.call(stacking, c(list_all_esdm, list_methods_stacking))
 
-print(time_ESDM)
-print(Sys.time() - startTime)
+# print(time_ESDM)
+# print(Sys.time() - startTime)
 
 
 
-save.stack(stack_final, name = "SSDM_final", path = "~/stage_ssdm/final/results")
+save.stack(stack_final, name = "SSDM_713_bin", path = "~/stage_ssdm/final/results")
 
 # scp -r  manon@niamoto.ird.nc:~/stage_ssdm/final/results/SSDM_final "D:/Vanessa/Mes Documents/Stage Manon C/r/final_1"   
 
