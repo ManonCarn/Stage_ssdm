@@ -39,8 +39,7 @@ Occ <- readRDS(file = paste0(occ_path, "/data_final2_thinning.rds"))
 
 
 
-
-#### Nouveua tab pour ESDM dans ordre du max occ ####
+#### Nouveau tab pour ESDM dans ordre du max occ ####
 data_final2_thinning = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/data_final2_thinning.rds")
 sp_tot = data_final2_thinning$SpeciesID
 list_sp = unique(sp_tot)
@@ -53,6 +52,7 @@ for (i in 1:length(ordre_sp)){
   sp = paste(rep(nb[i,1],n))
   ordre_tot = c(ordre_tot,sp)
 }
+
 
 ordre_tot = data.frame(ordre_tot,1:136808)
 names(ordre_tot) = c("SpeciesID","ordre")
@@ -71,17 +71,218 @@ data_final2_thinning_arranged = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/
 
 
 
-#### ACP entre les 6 var env quantitatives, verif pas trop correlees #### 
-altitude = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Raster env/Raster_base2/altitude_ok.tif") # +1941
-cti = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Raster env/Raster_base2/cti_ok.tif")
-pente = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Raster env/Raster_base2/pente_ok.tif")
-precipitation = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Raster env/Raster_base2/precipitation_res_ok.tif") # -2712
-ensoleillement = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Raster env/Raster_base2/ensoleillement_ok.tif")
+#### Analyses sur occ et var env ####
+altitude = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Raster env/Raster_base2/altitude_ok.tif")
 alizes = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Raster env/Raster_base2/alizes_ok.tif")
-# substrat = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Raster env/Raster_base2/substrat_ok.tif")
+cti = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Raster env/Raster_base2/cti_ok.tif")
+ensoleillement = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Raster env/Raster_base2/ensoleillement_ok.tif")
+pente = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Raster env/Raster_base2/pente_ok.tif")
+precipitation = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Raster env/Raster_base2/precipitation_res_ok.tif")
+precipitation2 = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Raster env/Raster_base2/precipitation_res_ok2.tif")
+substrat = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Raster env/Raster_base2/substrat_ok.tif")
 
-length(na.omit(values(ensoleillement)))
+alizes[is.na(precipitation)]<- NA
+altitude[is.na(precipitation)]<- NA
+cti[is.na(precipitation)]<- NA
+ensoleillement[is.na(precipitation)]<- NA
+pente[is.na(precipitation)]<- NA
+substrat[is.na(precipitation)]<- NA
 
+altitude_valeurs = na.omit(values(altitude)) # plus de valeurs que les autres : 1 707 316
+pente_valeurs = na.omit(values(pente)) # all same : 1 705 375
+cti_valeurs = na.omit(values(cti)) 
+alizes_valeurs = na.omit(values(alizes))
+ensoleillement_valeurs = na.omit(values(ensoleillement))
+precipitation_valeurs = na.omit(values(precipitation2)) # moins de valeurs : 1 702 663
+substrat_valeurs = na.omit(values(substrat))
+
+altitude_tot = na.omit(values(altitude)) # plus de valeurs que les autres : 1 707 316
+pente_tot = na.omit(values(pente)) # all same : 1 705 375
+cti_tot = na.omit(values(cti))
+alizes_tot = na.omit(values(alizes))
+ensoleillement_tot = na.omit(values(ensoleillement))
+precipitation_tot = na.omit(values(precipitation2)) # moins de valeurs : 1 702 663
+substrat_tot = na.omit(values(substrat))
+
+
+env_tot = list(altitude_tot,pente_tot,cti_tot,alizes_tot,ensoleillement_tot,precipitation_tot,substrat_tot)
+# saveRDS(env_tot,file = "D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Raster env/env_tot.rds")
+
+tab_env = data.frame(altitude_valeurs,pente_valeurs,cti_valeurs,alizes_valeurs,ensoleillement_valeurs,precipitation_valeurs,substrat_valeurs)
+# saveRDS(tab_env, file = "D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Raster env/tab_env.rds")
+tab_env = cbind(tab_env, log(precipitation_valeurs), log(ensoleillement_valeurs))
+names(tab_env) = c("altitude","pente","cti","alizes","ensoleillement","precipitation","substrat")
+boxplot(log(tab_env$altitude),tab_env$pente,tab_env$cti,tab_env$alizes,tab_env$log_prec,tab_env$substrat,tab_env$log_enso)
+
+## test corrélation Pearson entre var env 
+library(Hmisc)
+tab_env = readRDS ("D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Raster env/tab_env.rds")
+
+cor.test(tab_env$altitude, tab_env$ensoleillement, method= "pearson") # 0.2358728
+cor = rcorr(as.matrix(tab_env), type = "pearson")
+cor$P
+
+pairs(tab_env)
+
+
+env_tot = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Raster env/env_tot.rds")
+
+min = rep(0,7)
+max = rep(0,7)
+moy = rep(0,7)
+med = rep(0,7)
+
+options(scipen=50,digits = 7)
+for (i in 1:7){
+  min[i] = min(env_tot[[i]])
+  max[i] = max(env_tot[[i]])
+  moy[i] = mean(env_tot[[i]])
+  med[i] = median(env_tot[[i]])
+}
+
+tab_valeurs = data.frame(min,max,moy,med)
+
+## Tableau occurrences familles etc 
+data_final2_thinning = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/data_final2_thinning.rds")
+data_final2 = read.csv2("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/data_final2.csv") 
+data_final2 = data_final2[-1]
+
+data_tot = read.csv ("D:/Vanessa/Mes Documents/Stage Manon C/r/Data/data_final_2/occ_total_nc_202306091601.csv", sep = ';')
+data_unique = read.csv ("D:/Vanessa/Mes Documents/Stage Manon C/r/Data/data_final_2/occ_total_nc_unique_202306091600.csv", sep = ';')
+
+data_family = unique(data_tot[,4:5])
+data_family = arrange(data_family,taxaname)
+family = rep(0,length(data_final2$SPECIES))
+data_final_family = cbind(data_final2,family)
+
+for (i in 1:length(data_final_family$SPECIES)){
+  data_final_family[i,4] <- data_family[data_family$taxaname == data_final_family[i,1],1]
+}
+
+# saveRDS(data_final_family, file = "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/data_final_family.rds")
+data_final_family = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/data_final_family.rds")
+
+data_family2 = data_family
+data_family2$taxaname <- gsub("\\s+", " ", stringr::str_trim(data_family2$taxaname))
+data_family2$taxaname <- unlist(lapply(strsplit(data_family2$taxaname, " "), function(x) paste(x[1:2],collapse="_")))
+data_family2= unique(data_family2)
+
+family = rep(0,length(data_final2_thinning$SpeciesID))
+data_final_family_thin = cbind(data_final2_thinning,family)
+for (i in 1:length(data_final_family_thin$SpeciesID)){
+  data_final_family_thin[i,4] <- data_family2[data_family2$taxaname == data_final_family_thin[i,1],1]
+}
+# saveRDS(data_final_family_thin, file = "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/data_final_family_thin.rds")
+data_final_family_thin = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/data_final_family_thin.rds")
+
+## compter nb occ par sp et par famille 
+# nb occ data 
+list_sp = unique(data_final_family$SPECIES)
+nb_occ = rep(0,length(list_sp))
+for (i in 1:length(nb_occ)) {
+  tab = subset(data_final_family, SPECIES == list_sp[i])
+  nb_occ[i] = length(tab$SPECIES)
+}
+# saveRDS(nb_occ, file = "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/nb_occ.rds")
+nb_occ = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/nb_occ.rds")
+
+# nb occ family data 
+list_family = unique(data_final_family$family)
+nb_occ_f = rep(0,length(list_family))
+for (i in 1:length(nb_occ_f)) {
+  tab = subset(data_final_family, family == list_family[i])
+  nb_occ_f[i] = length(tab$family)
+}
+
+# nb sp family data 
+nb_sp = rep(0,length(list_family))
+for (i in 1:length(nb_sp)){
+  tab = unique(subset(data_final_family[,c(1,4)], family == list_family[i]))
+  nb_sp[i] = length(tab$SPECIES)
+}
+
+tab_occ = data.frame(list_family,nb_sp,nb_occ_f)
+# saveRDS(tab_occ, file = "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/tab_occ.rds")
+tab_occ = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/tab_occ.rds")
+
+
+# nb occ data thin
+list_sp_thin = unique(data_final_family_thin$SpeciesID)
+nb_occ_thin = rep(0,length(list_sp_thin))
+for (i in 1:length(nb_occ_thin)) {
+  tab = subset(data_final_family_thin, SpeciesID == list_sp_thin[i])
+  nb_occ_thin[i] = length(tab$SpeciesID)
+}
+# saveRDS(nb_occ_thin, file = "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/nb_occ_thin.rds")
+nb_occ_thin = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/nb_occ_thin.rds")
+
+sum(nb_occ_thin > 1000) #9
+sum(nb_occ_thin < 250) # 1019 
+1019/1144 
+
+mean(nb_occ_thin)
+median(nb_occ_thin)
+
+ggplot(data.frame(unique(data_final_family_thin$SpeciesID, nb_occ_thin))) +
+  geom_histogram(aes(x=nb_occ_thin)) +
+  labs(  x = "nombre d'occurrences par espèce")
+
+# nb occ family data thin
+list_family_thin = unique(data_final_family_thin$family)
+nb_occ_f_thin = rep(0,length(list_family_thin))
+for (i in 1:length(nb_occ_f_thin)) {
+  tab = subset(data_final_family_thin, family == list_family_thin[i])
+  nb_occ_f_thin[i] = length(tab$family)
+}
+
+# nb sp family data thin
+nb_sp_thin = rep(0,length(list_family_thin))
+for (i in 1:length(nb_sp_thin)){
+  tab = unique(subset(data_final_family_thin[,c(1,4)], family == list_family_thin[i]))
+  nb_sp_thin[i] = length(tab$SpeciesID)
+}
+
+tab_occ_thin = data.frame(list_family_thin,nb_sp_thin,nb_occ_f_thin)
+# saveRDS(tab_occ_thin, file = "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/tab_occ_thin.rds")
+tab_occ_thin = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/tab_occ_thin.rds")
+
+## plot toutes occ
+mask <- readOGR("D:/Vanessa/Mes Documents/Stage Manon C/r/mask_rasters/contour_grande_terre_clean.shp")
+alizes <- raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Raster env/Raster_base/alizes.tif")
+mask <- spTransform(mask, crs(alizes))
+
+plot(mask, main = "Occurrences jeu de données total")
+points(data_final_family[,2:3], pch = 20)
+
+plot(mask, main = "Occurrences jeu de données après sélection")
+points(data_final_family_thin[,2:3],pch=20)
+
+
+## surface des occurrences + hist + corrélation surface sdm 
+library(red)
+# path = "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/manon/ESDM/" 
+# list_sdm = list.files(path)
+data_final2_thinning = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/data_final2_thinning_names.rds")
+# data_final2_thinning = subset(data_final2_thinning,SpeciesID %in% list_sdm)
+
+list_sp = unique(data_final2_thinning$SpeciesID)
+surface_occ = rep(0,length(list_sp))
+for (i in 1:length(list_sp)){
+  tab = subset(data_final2_thinning, SpeciesID == list_sp[i])
+  tab = tab[,2:3]
+  surface_occ[i] = aoo(tab)
+}
+
+sum(surface_occ < 500) # 998
+998/1144
+median(surface_occ) # 156
+mean(surface_occ) # 245.7867
+sum(surface_occ > 1000) # 31
+
+library(ggplot2)
+ggplot(data.frame(list_sp, surface_occ)) +
+  geom_histogram(aes(x=surface_occ)) +
+  labs(  x = "Surface des occurrences par la méthode AOO (km2)", y = "fréquence")
 
 
 
@@ -260,24 +461,28 @@ all_esdm_names <- list.files(path_load)
 # names(list_all_esdm) <- NULL
 # names(list_all_esdm_range) <- NULL
 list_all_esdm_706 = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_713sp/list_all_esdm_706.rds")
-
+list_all_esdm_706_range = list_all_esdm_706
 
 buf = 20000 # 20km
 
 # tableau occ avec que nos sp
-occ =  read.csv2( "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/data_final2.csv")
-occ = occ[,-1]
-occ$SPECIES <- gsub("\\s+", " ", stringr::str_trim(occ$SPECIES ))
-occ$SPECIES <- unlist(lapply(strsplit(occ$SPECIES, " "), function(x) paste(x[1:2],collapse="_")))
-occ = subset(occ,occ$SPECIES %in% all_esdm_names)
+
+# occ =  read.csv2( "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/data_final2.csv")
+# occ = occ[,-1]
+# occ$SPECIES <- gsub("\\s+", " ", stringr::str_trim(occ$SPECIES ))
+# occ$SPECIES <- unlist(lapply(strsplit(occ$SPECIES, " "), function(x) paste(x[1:2],collapse="_")))
+# occ = subset(occ,occ$SPECIES %in% all_esdm_names)
+occ = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/data_final2_thinning.rds")
+names(occ) = c("SPECIES","LONGITUDE","LATITUDE")
+occ = subset(occ, occ$SPECIES %in% all_esdm_names)
 
 
-for(i in 1:length(list_all_esdm_706)){
+for(i in 1:length(list_all_esdm_706_range)){
   print(i)
   tab = subset(occ, occ$SPECIES == all_esdm_names[i] ) # subset tab pour sp i
   xy = data.frame(tab$LONGITUDE,tab$LATITUDE) # xy = 2 col long lat du fichier occ
   # names(list_all_esdm_range)==spi 
-  esdm = list_all_esdm_706[[i]] #  subset esdm i 
+  esdm = list_all_esdm_706_range[[i]] #  subset esdm i 
   spdf <- SpatialPointsDataFrame(coords = xy, data = tab,
                                  proj4string = CRS("+proj=longlat +datum=WGS84 +no_defs"))
   
@@ -288,7 +493,7 @@ for(i in 1:length(list_all_esdm_706)){
   buffer_tmp <- st_transform(buffer_tmp, crs = crs(esdm@projection))
   # r2 <- crop(esdm@projection, extent(buffer_tmp))
   r3 <- mask(esdm@projection, buffer_tmp)
-  list_all_esdm_706[[i]]@projection[is.na(r3[])] <- 0
+  list_all_esdm_706_range[[i]]@projection[is.na(r3[])] <- 0
   # list_all_esdm_range[[names(list_all_esdm_range)==sp i]]@raster_prob <- r3 
 }
 
@@ -323,19 +528,116 @@ saveRDS(stack_prob_range@uncertainty, file = "D:/Vanessa/Mes Documents/Stage Man
 
 
 
-#### Comparaison SSDM binaire et proba ####
+#### Analyses sur SDM ####
+path = "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/manon/ESDM/" 
+list_sdm = list.files(path)
+data_final_family_thin = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/data_final_family_thin.rds")
+liste=unique(data_final_family_thin$SpeciesID)
+nb_occ_thin = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/nb_occ_thin.rds")
+
+sum(!list_sdm %in% liste)
+manque = list_sdm[!list_sdm %in% liste]
+liste[c(84,106,155,156,229,448,470,487,488,489,545,613,614,641,797,798,799,800,801,836,837,854,985,1100)] = manque 
+
+a_changer = liste[c(84,106,155,156,229,448,470,487,488,489,545,613,614,641,797,798,799,800,801,836,837,854,985,1100)]
 
 
+# for (i in 1:24){
+#   data_final2_thinning[data_final2_thinning$SpeciesID==a_changer[i],1] = manque[i]
+# }
+# 
+# saveRDS(data_final2_thinning, file = "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/data_final2_thinning_names.rds")
+data_final2_thinning_names = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/data_final2_thinning_names.rds")
 
-#### Analyse qualité des modèles ####
-# petit paragraphe dans résultats
+
+tab_sdm = cbind(liste,unique(data_final_family_thin[,c(1,4)])[2],nb_occ_thin)
+tab_sdm = subset(tab_sdm, liste %in% list_sdm)
+tab_sdm = cbind(tab_sdm,surfaces_sdm)
+# saveRDS(tab_sdm,file = "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/tad_sdm.rds")
+tab_sdm = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/tad_sdm.rds")
 
 
+## surface des sdm + hist 
+path = "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/manon/ESDM/" 
+list_sdm = list.files(path)
+surfaces = rep(0,length(list_sdm))
+for (i in 1:length(list_sdm)){
+  sdm = raster(paste0(path,list_sdm[i],"/Rasters/Binary.tif"))
+  surfaces[i] = sum(sdm[sdm==1])
+  cat(i, "\n\n")
+}
+saveRDS(surfaces, file = "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/surfaces_sdm.rds")
+surfaces_sdm = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/surfaces_sdm.rds")
 
-#### Test hypothèse nulle : pas d'effet des var env sur la distribution des espèces ####
-SSDM@diversity.map
-# regarder importance des var env dans la construction des modèles 
+ggplot(tab_sdm) +
+  geom_histogram(aes(x=surfaces_sdm)) +
+  labs(  x = "Surface des aires de distribution potentielles (en ha)")
 
+sum (surfaces_sdm < 500000) # 1003
+1003/1112
+median(surfaces_sdm) # 225215.5
+mean(surfaces_sdm) # 256917.5
+sum(surfaces_sdm > 1000000) # 5
+
+## corrélation nb occ par sp et surface 
+surfaces_sdm = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/surfaces_sdm.rds")
+tab = data.frame(unique(data_final2_thinning_names$SpeciesID), nb_occ_thin)
+names(tab) = c("SpeciesID","nb_occ")
+tab = subset(tab,SpeciesID %in% list_sdm)
+
+cor.test(surfaces_sdm,tab$nb_occ, method = 'pearson') 
+# -0.1412783
+# p-value = 2.25e-06
+
+## corrélation aire occurrence et surface sdm
+surfaces_sdm = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/surfaces_sdm.rds")
+tab = data.frame(unique(data_final2_thinning_names$SpeciesID), surface_occ)
+names(tab) = c("SpeciesID","surface_occ")
+tab = subset(tab,SpeciesID %in% list_sdm)
+
+cor.test(surfaces_sdm,tab$surface_occ, method = 'pearson') 
+# -0.05920315
+# p-value = 0.04841
+
+
+## compter nb patate dans SDM + hist
+# library(landscapemetrics)
+# lsm_c_np(sdm2,directions = 8)
+path = "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/manon/ESDM/" 
+list_sdm = list.files(path)
+nb_patate = rep(0,length(list_sdm))
+for (i in 1:length(list_sdm)) {
+  sdm = raster(paste0(path,list_sdm[i],"/Rasters/Binary.tif"))
+  sdm[sdm==0] = NA
+  sdm = rasterToPolygons(sdm,dissolve = T)
+  nb_patate[i] = length(sdm@polygons[[1]]@Polygons)
+  cat(i)
+}
+saveRDS(nb_patate, file = "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/nb_patate.rds" )
+##Version serveur
+library(raster)
+library(terra)
+library(sf)
+library(SSDM)
+library(rgdal)
+library(sfhotspot)
+library(rgeos)
+library(ggplot2)
+library(stats)
+library(tidyverse)
+library(dplyr)
+
+path = "~/stage_ssdm/final/results/ESDM/" 
+list_sdm = list.files(path)
+nb_patate = rep(0,length(list_sdm))
+for (i in 1:length(list_sdm)) {
+  sdm = raster(paste0(path,list_sdm[i],"/Rasters/Binary.tif"))
+  sdm[sdm==0] = NA
+  sdm = rasterToPolygons(sdm,dissolve = T)
+  nb_patate[i] = length(sdm@polygons[[1]]@Polygons)
+  cat(i, '\n\n')
+}
+saveRDS(nb_patate, file = "~/stage_ssdm/final/results/nb_patate.rds" )
 
 
 #### Analyses sur fragmentation, sur SDM ####
@@ -464,12 +766,12 @@ prob_2050_ok = raster ("D:/Vanessa/Mes Documents/Stage Manon C/r/Raster_foret/pr
 prob_2100_ok = raster ("D:/Vanessa/Mes Documents/Stage Manon C/r/Raster_foret/prob_2100_ok.tif")
 prob_2100_perte = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Raster_foret/prob_2100_perte.tif")
 
-SSDM_45sp = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_45sp/stack_bin_range.rds") # choix SSDM bin et range 
+# SSDM_45sp = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_45sp/stack_bin_range.rds") # choix SSDM bin et range 
+path = "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/manon/ESDM"
 
+list_sp = list.files( path)
 
-list_45sp = list.files( "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_45sp/ESDM_final")
-
-a = rep(0,length(list_45sp))
+a = rep(0,length(list_sp))
 results = list(a,a,a)
 names(results) = c("perte","perte_2000_2020","perte_2100")
 
@@ -478,8 +780,8 @@ base = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Raster env/
 mask <- readOGR("D:/Vanessa/Mes Documents/Stage Manon C/r/mask_rasters/contour_grande_terre_clean.shp")
 mask <- spTransform(mask, crs(base))
 
-for (i in 1:length (list_45sp)){
-  sp = SSDM_45sp@esdms[[i]]@binary
+for (i in 1:length (list_sp)){
+  sp = raster(paste0(path,"/",list_sp[i],"/Rasters/Binary.tif"))
   esdm = crop(sp,mask) # peut etre pas besoin si les sdm ont dejà la meme emprise que les var env 
   # esdm = mask(sp,mask) # same
   esdm_actuel = crop(esdm, actual_forest_crop)
@@ -502,8 +804,10 @@ for (i in 1:length (list_45sp)){
   esdm_2100 = mask(esdm, prob_2100_perte)
   perdu_2100 = sum(esdm_2100[esdm_2100==1])
   results[[3]][i] <- perdu_2100/foret_2020
-
+  
+  print(i)
 }
+
 
 results
 
@@ -525,6 +829,86 @@ sp_perte_2100_75 =  list_45sp[which(results$perte_2100>0.75)]
 
 
 
+
+#### Erreurs SSDM serveur #### 
+# erreurs sdm
+# Error in read.table(file = file, header = header, sep = sep, quote = quote,  :
+#                       first five rows are empty: giving up
+#                     Algorithm correlation table empty !
+# 
+#                       Ensemble model Austrobuxus_carunculatus.Ensemble.SDM : Error in compareRaster(x) : different extent
+#                     Error in compareRaster(x) : different extent
+# 
+#                     
+# erreurs quand stack 1112 sp 
+# > stack_final <- do.call(stacking, c(list_all_esdm, list_methods_stacking))
+# Stack creation...
+# naming... done.
+# range restriction... done.
+# diversity mapping...
+# Local species richness computed by thresholding and then summing.
+# Killed
+#                     
+                    
+                    
+#### analyse SSDM ####
+
+## load
+par(mfrow = c(2,2))
+
+list_sp = list.files()
+
+## hist richesses 
+# bin
+ssdm_bin = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/final_1/SSDM_final/ssdm_bin.tif")
+plot(ssdm_bin, main = "Distribution pontentielle de la richesse (avec méthode binaire)" )
+richesse1 = na.omit(values(ssdm_bin))
+richesse1
+
+# prob
+ssdm_prob = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/final_1/SSDM_final/ssdm_prob.tif")
+plot(ssdm_prob, main = "Distribution pontentielle de la richesse (avec méthode probabilité)" )
+richesse2 = na.omit(values(ssdm_prob))
+
+# bin_range
+ssdm_bin_range = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/final_1/SSDM_final/ssdm_bin_range.tif")
+plot(ssdm_bin_range, main = "Distribution pontentielle de la richesse avec filtre de dispersion de 20km (méthode binaire)" )
+richesse3 = na.omit(values(ssdm_bin_range))
+
+# prob_range 
+ssdm_prob_range = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/final_1/SSDM_final/ssdm_prob_range.tif")
+plot(ssdm_prob_range, main = "Distribution pontentielle de la richesse avec filtre de dispersion de 20km (méthode probabilité)" )
+richesse4 = na.omit(values(ssdm_prob_range))
+
+tab_richesse = data.frame(richesse1,richesse2,richesse3,richesse4)
+
+
+
+ggplot(tab_richesse) +
+  geom_histogram(aes(x=richesse1)) +
+  labs(  x = "Richesse par ha (SSDM binaire)", y = "Fréquence")
+
+ggplot(tab_richesse) +
+  geom_histogram(aes(x=richesse2)) +
+  labs(  x = "Richesse par ha (SSDM probabilité)", y = "Fréquence")
+
+ggplot(tab_richesse) +
+  geom_histogram(aes(x=richesse3)) +
+  labs(  x = "Richesse par ha (SSDM binaire et filtre de dispersion)", y = "Fréquence")
+
+ggplot(tab_richesse) +
+  geom_histogram(aes(x=richesse4)) +
+  labs(  x = "Richesse par ha (SSDM probabilité et filtre de dispersion)", y = "Fréquence")
+
+## corrélaion nb occ richesse 
+
+
+#### Test hypothèse nulle : pas d'effet des var env sur la distribution des espèces ####
+SSDM@diversity.map
+# regarder importance des var env dans la construction des modèles 
+
+
+
 #### Analyse richesse spécifique, sur SSDM ####
 
 ## avec méthode quantile (1/5 le plus élevé)
@@ -538,6 +922,64 @@ plot(SSDM, main = "20% plus riches")
 
 ## Zones plus riches // 3 différents milieux 
 holdridge_nc = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Raster_foret/Holdridge_CHELSA.tif")
+plot(holdridge_nc)
+table(values(holdridge_nc))
+# 1 : milieu sec dry
+# 2 : milieu humide moist
+# 3 : milieu très humide wet
+
+# holdridge_nc[! holdridge_nc == 1 ] = NA
+# plot(holdridge_nc)
+# writeRaster(holdridge_nc, file ="D:/Vanessa/Mes Documents/Stage Manon C/r/Raster_foret/holdridge1.tif" )
+# 
+# holdridge_nc[! holdridge_nc == 2 ] = NA
+# plot(holdridge_nc)
+# writeRaster(holdridge_nc, file ="D:/Vanessa/Mes Documents/Stage Manon C/r/Raster_foret/holdridge2.tif" )
+# 
+# holdridge_nc[! holdridge_nc == 3 ] = NA
+# plot(holdridge_nc)
+# writeRaster(holdridge_nc, file ="D:/Vanessa/Mes Documents/Stage Manon C/r/Raster_foret/holdridge3.tif" )
+
+holdridge1 = raster ("D:/Vanessa/Mes Documents/Stage Manon C/r/Raster_foret/holdridge1.tif" )
+holdridge2 = raster ("D:/Vanessa/Mes Documents/Stage Manon C/r/Raster_foret/holdridge2.tif" )
+holdridge3 = raster ("D:/Vanessa/Mes Documents/Stage Manon C/r/Raster_foret/holdridge3.tif" )
+mask = readOGR("D:/Vanessa/Mes Documents/Stage Manon C/r/mask_rasters/mask_bon_crs.shp")
+
+
+par(mfrow = c(1,3))
+plot(holdridge1)
+plot(holdridge2)
+plot(holdridge3)
+
+par(mfrow = c(1,1))
+
+# milieu 1 sec 
+ssdm = raster ("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_713sp/SSDM_706_prob/Stack/Rasters/Diversity.tif")
+plot(ssdm)
+plot(holdridge_nc)
+
+ssdm[! holdridge_test==1]  = NA
+
+ssdm[!holdridge1==1]=NA
+ssdm = crop(ssdm,holdridge_test)
+holdridge_test = crop(holdridge_test,ssdm)
+ssdm = mask(ssdm, holdridge_test)
+
+plot(test1)
+
+ssdm[holdridge_test == 1] = NA
+test1 = holdridge_test
+
+extend(holdridge1) <- extend(ssdm)
+
+holdridge_test = crop(holdridge_nc, mask)
+holdridge_test = mask(holdridge_test, mask)
+plot(holdridge_test)
+table(values(holdridge_test))
+
+extend(mask)
+plot(mask)
+
 
 
 ## id hotspot de richesse 
@@ -595,9 +1037,3 @@ hotspot %>%
   theme_void()
 
 
-#### Comparaison espèces rares/communes ####
-# disucssion, 
-# regarder proportion perdue pour chaque espèce de distrtib potentielle + filtre dispersion 
-
-
-#### Analyse sup : différencier espèces protégées et non / en danger et non (Endemia) ####
