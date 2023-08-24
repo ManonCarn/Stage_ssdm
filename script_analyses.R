@@ -13,6 +13,7 @@ library(dplyr)
 
 # scp -r  manon@niamoto.ird.nc:~/stage_ssdm/final/results/ESDM_copie  "D:/Vanessa/Mes Documents/Stage Manon C/r/final_1/SSDM_713sp"   
 
+theme(text = element_text(size = 16))
 
 #### SI besoin de re load data arranged #### 
 # occurences dataset 
@@ -81,6 +82,7 @@ precipitation = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Ra
 precipitation2 = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Raster env/Raster_base2/precipitation_res_ok2.tif")
 substrat = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Raster env/Raster_base2/substrat_ok.tif")
 
+plot(substrat==1)
 alizes[is.na(precipitation)]<- NA
 altitude[is.na(precipitation)]<- NA
 cti[is.na(precipitation)]<- NA
@@ -93,7 +95,8 @@ pente_valeurs = na.omit(values(pente)) # all same : 1 705 375
 cti_valeurs = na.omit(values(cti)) 
 alizes_valeurs = na.omit(values(alizes))
 ensoleillement_valeurs = na.omit(values(ensoleillement))
-precipitation_valeurs = na.omit(values(precipitation2)) # moins de valeurs : 1 702 663
+precipitation_valeurs2 = na.omit(values(precipitation2)) # moins de valeurs : 1 702 663
+precipitation_valeurs = na.omit(values(precipitation))
 substrat_valeurs = na.omit(values(substrat))
 
 altitude_tot = na.omit(values(altitude)) # plus de valeurs que les autres : 1 707 316
@@ -104,6 +107,8 @@ ensoleillement_tot = na.omit(values(ensoleillement))
 precipitation_tot = na.omit(values(precipitation2)) # moins de valeurs : 1 702 663
 substrat_tot = na.omit(values(substrat))
 
+summary(precipitation_valeurs)
+sum(precipitation_valeurs == precipitation_valeurs2)
 
 env_tot = list(altitude_tot,pente_tot,cti_tot,alizes_tot,ensoleillement_tot,precipitation_tot,substrat_tot)
 # saveRDS(env_tot,file = "D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Raster env/env_tot.rds")
@@ -219,13 +224,15 @@ nb_occ_thin = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/nb_occ_t
 sum(nb_occ_thin > 1000) #9
 sum(nb_occ_thin < 250) # 1019 
 1019/1144 
+sum(nb_occ_thin < 20)
 
 mean(nb_occ_thin)
 median(nb_occ_thin)
 
 ggplot(data.frame(unique(data_final_family_thin$SpeciesID, nb_occ_thin))) +
   geom_histogram(aes(x=nb_occ_thin)) +
-  labs(  x = "nombre d'occurrences par espèce")
+  labs(  x = "Occurrences", y = "Nombre d'espèces") +
+  theme(text = element_text(size = 17))
 
 # nb occ family data thin
 list_family_thin = unique(data_final_family_thin$family)
@@ -246,16 +253,22 @@ tab_occ_thin = data.frame(list_family_thin,nb_sp_thin,nb_occ_f_thin)
 # saveRDS(tab_occ_thin, file = "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/tab_occ_thin.rds")
 tab_occ_thin = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/tab_occ_thin.rds")
 
+lim80 = quantile(tab_occ_thin$nb_occ_f_thin,prob = 0.8)
+familles_majeures = tab_occ_thin[tab_occ_thin$nb_occ_f_thin>lim80,c(1,3)]
+familles_majeures = order(familles_majeures,decreasing = T)
+
+
 ## plot toutes occ
-mask <- readOGR("D:/Vanessa/Mes Documents/Stage Manon C/r/mask_rasters/contour_grande_terre_clean.shp")
-alizes <- raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Raster env/Raster_base/alizes.tif")
-mask <- spTransform(mask, crs(alizes))
+# mask <- readOGR("D:/Vanessa/Mes Documents/Stage Manon C/r/mask_rasters/contour_grande_terre_clean.shp")
+# alizes <- raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Raster env/Raster_base/alizes.tif")
+# mask <- spTransform(mask, crs(alizes))
+mask = readOGR("D:/Vanessa/Mes Documents/Stage Manon C/r/mask_rasters/mask_bon_crs.shp")
 
 plot(mask, main = "Occurrences jeu de données total")
 points(data_final_family[,2:3], pch = 20)
 
-plot(mask, main = "Occurrences jeu de données après sélection")
-points(data_final_family_thin[,2:3],pch=20)
+plot(mask, main = "Distribution géographique des occurrences \n en Nouvelle Calédonie")
+points(data_final_family_thin[,2:3],pch=".", col = "blueviolet")
 
 
 ## surface des occurrences + hist + corrélation surface sdm 
@@ -282,8 +295,8 @@ sum(surface_occ > 1000) # 31
 library(ggplot2)
 ggplot(data.frame(list_sp, surface_occ)) +
   geom_histogram(aes(x=surface_occ)) +
-  labs(  x = "Surface des occurrences par la méthode AOO (km2)", y = "fréquence")
-
+  labs(  x = "Surface des occurrences par la méthode AOO (km2)", y = "Fréquence") +
+  theme(text = element_text(size = 16))
 
 
 
@@ -557,6 +570,100 @@ tab_sdm = cbind(tab_sdm,surfaces_sdm)
 tab_sdm = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/tad_sdm.rds")
 
 
+
+## distribution env // sdm
+tab_env = readRDS ("D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Raster env/tab_env.rds")
+
+path = "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/manon/ESDM/" 
+list_sdm = list.files(path)
+
+
+
+tab_distrib_env = data.frame(rep(0,length(list_sdm)),rep(0,length(list_sdm)),rep(0,length(list_sdm)),rep(0,length(list_sdm)),rep(0,length(list_sdm)),
+                             rep(0,length(list_sdm)),rep(0,length(list_sdm)))
+
+names(tab_distrib_env) = c("altitude","pente","cti","alizes","ensoleillement","precipitations","substrat")
+
+for (i in 1:length(list_sdm)){
+  sdm = raster(paste0(path,list_sdm[i],"/Rasters/Binary.tif"))
+  valeurs = na.omit(values(sdm))
+  tab_temp = tab_env[valeurs==1,]
+  for (j in 1:7){
+    tab_distrib_env[i,j] = max(tab_temp[,j]) - min(tab_temp[,j])
+  }
+  print(i)
+}
+
+subs = rep(0,length(list_sdm))
+for (i in 1:length(list_sdm)){
+  sdm = raster(paste0(path,list_sdm[i],"/Rasters/Binary.tif"))
+  valeurs = na.omit(values(sdm))
+  tab_temp = tab_env[valeurs==1,7]
+  subs[i] = n_distinct(tab_temp)
+  print(i)
+}
+
+# saveRDS(subs, file = "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/distrib_substrat.rds" )
+distrib_substrat = readRDS ("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/distrib_substrat.rds" )
+sum(distrib_substrat==3)
+
+ggplot(data.frame(distrib_substrat)) +
+  geom_histogram(aes(x=distrib_substrat)) +
+  # labs(  x = "Nombre de substrats différents compris \n dans la distribution potentielle des espèces", y = "Nombre d'espèces") +
+  labs(x="",y="") +
+  theme(text = element_text(size = 17)) +
+  theme(axis.text = element_text(size = 17))  +
+  scale_x_continuous(limits=c(0.8,3.2), n.breaks = 3)
+
+
+# saveRDS(tab_distrib_env, file = "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/tab_distrib_env.rds")
+tab_distrib_env = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/tab_distrib_env.rds")
+
+sum(tab_distrib_env$precipitations>3000)
+max(tab_distrib_env$precipitations)
+760/1112
+
+ggplot(tab_distrib_env) +
+  geom_histogram(aes(x=altitude)) +
+  # labs(  x = "Amplitude altitudinale de la distribution \n potentielle des espèces (en m)", y = "Nombre d'espèces") +
+  labs(x="",y="") +
+  theme(text = element_text(size = 17)) +
+  theme(axis.text = element_text(size = 17))
+
+ggplot(tab_distrib_env) +
+  geom_histogram(aes(x=pente)) +
+  labs(  x = "Amplitude de pente de la distribution potentielle des espèces", y = "Fréquence")
+
+ggplot(tab_distrib_env) +
+  geom_histogram(aes(x=cti)) +
+  labs(  x = "Amplitude du cti de la distribution potentielle des espèces", y = "Fréquence")
+
+ggplot(tab_distrib_env) +
+  geom_histogram(aes(x=alizes)) +
+  labs(  x = "Amplitude de la distance à la cote est de la distribution potentielle des espèces", y = "Fréquence")
+
+ggplot(tab_distrib_env) +
+  geom_histogram(aes(x=ensoleillement)) +
+  labs(  x = "Amplitude de l'ensoleillement de la distribution potentielle des espèces", y = "Fréquence")
+
+ggplot(tab_distrib_env) +
+  geom_histogram(aes(x=precipitations)) +
+  # labs(  x = "Amplitude pluviométrique de la distribution potentielle \n des espèces (en mm/an)", y = "Nombre d'espèces") +
+  labs(x="",y="") +
+  theme(text = element_text(size = 17)) +
+  theme(axis.text = element_text(size = 17))
+
+ggplot(tab_distrib_env) +
+  geom_histogram(aes(x=substrat)) +
+  labs(  x = "Amplitude du type de substrat de la distribution potentielle des espèces", y = "Fréquence")
+
+tab_distrib_env[tab_distrib_env == -Inf] = NA
+cor.test(tab_distrib_env$altitude,tab$nb_occ, method = "pearson")
+cor.test(tab_distrib_env$precipitations,tab$nb_occ, method = "pearson")
+
+cor.test(distrib_substrat, tab$nb_occ, method = "pearson")
+
+
 ## surface des sdm + hist 
 path = "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/manon/ESDM/" 
 list_sdm = list.files(path)
@@ -571,7 +678,8 @@ surfaces_sdm = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/surface
 
 ggplot(tab_sdm) +
   geom_histogram(aes(x=surfaces_sdm)) +
-  labs(  x = "Surface des aires de distribution potentielles (en ha)")
+  labs(  x = "Aires de distribution potentielle (en ha)", y = "Nombre d'espèces") +
+  theme(text = element_text(size = 17))
 
 sum (surfaces_sdm < 500000) # 1003
 1003/1112
@@ -638,6 +746,15 @@ for (i in 1:length(list_sdm)) {
   cat(i, '\n\n')
 }
 saveRDS(nb_patate, file = "~/stage_ssdm/final/results/nb_patate.rds" )
+
+
+## var imp
+summary_var_imp = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/final_1/SSDM_final/summary_var_imp.rds")
+var_imp_sd = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/final_1/SSDM_final/var_imp_sd.rds")
+
+# modele evaluation 
+summary_mod_eval = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/final_1/SSDM_final/summary_mod_eval.rds")
+mod_eval_sd = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/final_1/SSDM_final/mod_eval_sd.rds")
 
 
 #### Analyses sur fragmentation, sur SDM ####
@@ -785,40 +902,89 @@ for (i in 1:length (list_sp)){
   esdm = crop(sp,mask) # peut etre pas besoin si les sdm ont dejà la meme emprise que les var env 
   # esdm = mask(sp,mask) # same
   esdm_actuel = crop(esdm, actual_forest_crop)
-  esdm_actuel = mask(esdm, actual_forest_crop)
+  esdm_actuel = raster::mask(esdm, actual_forest_crop)
   nb_sp = sum(esdm[esdm==1])
   nb_sp_actuel = sum(esdm_actuel[esdm_actuel==1])
   perdu = (nb_sp - nb_sp_actuel)/nb_sp
   results[[1]][i] <- perdu
   
   esdm_2020 = crop(esdm, past_deforestation_foret)
-  esdm_2020 = mask(esdm, past_deforestation_foret)
+  esdm_2020 = raster::mask(esdm, past_deforestation_foret)
   foret_2020 = sum(esdm_2020[esdm_2020==1])
   
   esdm_2000_2020 = crop(esdm,past_deforestation_ok_tot)
-  esdm_2000_2020 = mask(esdm, past_deforestation_ok_tot)
+  esdm_2000_2020 = raster::mask(esdm, past_deforestation_ok_tot)
   perdu_2000_2020 = sum(esdm_2000_2020[esdm_2000_2020==1])
   results[[2]][i] <- perdu_2000_2020/foret_2020
   
   esdm_2100 = crop(esdm,prob_2100_perte)
-  esdm_2100 = mask(esdm, prob_2100_perte)
+  esdm_2100 = raster::mask(esdm, prob_2100_perte)
   perdu_2100 = sum(esdm_2100[esdm_2100==1])
   results[[3]][i] <- perdu_2100/foret_2020
   
   print(i)
 }
 
+# saveRDS(results, file = "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/tab_fragmentation.rds")
+results = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/tab_fragmentation.rds")
 
-results
+
+sum(na.omit(results[[3]]) > 0.6)
+sum(na.omit(results[[1]]) > 0.75)
+sum (na.omit(results[[1]]) > 0.25)
+
+sum(na.omit(results[[1]])>0.75)
+
+
+
+perte_actuel_2100 = rep(0,length(list_sp))
+for ( i in 1:length(list_sp)){
+  sp = raster(paste0(path,"/",list_sp[i],"/Rasters/Binary.tif"))
+  esdm = crop(sp,mask) # peut etre pas besoin si les sdm ont dejà la meme emprise que les var env 
+  # esdm = mask(sp,mask) # same
+  esdm_actuel = crop(esdm, actual_forest_crop)
+  esdm_actuel = raster::mask(esdm, actual_forest_crop)
+  nb_sp_actuel = sum(esdm_actuel[esdm_actuel==1])
+  
+  esdm_2100 = crop(esdm_actuel,prob_2100_perte)
+  esdm_2100 = raster::mask(esdm_2100, prob_2100_perte)
+  perdu_2100 = sum(esdm_2100[esdm_2100==1])
+  perte_actuel_2100[i] <- perdu_2100/nb_sp_actuel
+  
+  print(i)
+}
+
+saveRDS(perte_actuel_2100, file = "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/perte_actuel_2100.rds")
+perte_actuel_2100 = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/perte_actuel_2100.rds")
+
+sum(na.omit(perte_actuel_2100)>0.4)
+
+sum(na.omit(perte_actuel_2100)<0.4)
+
+
 
 # par(mfrow=c(1,3))
 hist(results[[1]])
 ggplot(data.frame(results)) +
-  geom_histogram(aes(x=perte))
+  geom_histogram(aes(x=perte))+
+  labs (x = "Proportion de surface potentielle perdue par rapport à la forêt actuelle", y = "Fréquence")
+
 ggplot(data.frame(results)) +
-  geom_histogram(aes(x=perte_2000_2020))
+  geom_histogram(aes(x=perte_2000_2020)) +
+  labs ( x = "Proportion de perte de surface entre 2000 et 2020", y = "Fréquence")
+
 ggplot(data.frame(results)) +
-  geom_histogram(aes(x=perte_2100))
+  geom_histogram(aes(x=perte_2100)) +
+  labs( x = "Proportion de perte de surface prédite en 2100 par à la distribution potentielle", y = "Fréquence")
+
+ggplot(data.frame(perte_actuel_2100)) +
+  geom_histogram(aes(x=perte_actuel_2100)) +
+  labs(x = "Proportion de perte de surface prédite en 2100 par rapport à la forêt actuelle" , y = "Fréquence")
+
+
+
+
+
 
 ## Liste espèces qui perdent +80% de leur surface 
 
@@ -861,9 +1027,10 @@ list_sp = list.files()
 ## hist richesses 
 # bin
 ssdm_bin = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/final_1/SSDM_final/ssdm_bin.tif")
-plot(ssdm_bin, main = "Distribution pontentielle de la richesse (avec méthode binaire)" )
+plot(ssdm_bin, main = "Distribution potentielle de la richesse (bSSDM)" )
 richesse1 = na.omit(values(ssdm_bin))
-richesse1
+sum(richesse1<200)
+1164546/length(richesse1)
 
 # prob
 ssdm_prob = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/final_1/SSDM_final/ssdm_prob.tif")
@@ -875,18 +1042,37 @@ ssdm_bin_range = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/final_1/SSDM_f
 plot(ssdm_bin_range, main = "Distribution pontentielle de la richesse avec filtre de dispersion de 20km (méthode binaire)" )
 richesse3 = na.omit(values(ssdm_bin_range))
 
+
 # prob_range 
-ssdm_prob_range = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/final_1/SSDM_final/ssdm_prob_range.tif")
-plot(ssdm_prob_range, main = "Distribution pontentielle de la richesse avec filtre de dispersion de 20km (méthode probabilité)" )
+ssdm_prob_range = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/final_1/SSDM_final/ssdm_prob_range2.tif")
+plot(ssdm_prob_range, main = "Distribution potentielle de la richesse \n avec filtre de dispersion de 20km (pSSDM-d)" )
 richesse4 = na.omit(values(ssdm_prob_range))
 
-tab_richesse = data.frame(richesse1,richesse2,richesse3,richesse4)
+sum(richesse4<300)
+sum(richesse4<50)
+(1696957-87219)/1702663 #  0.9454237
+
+sum(richesse2 == richesse4)
+
+
+
+# tab_richesse = data.frame(richesse1,richesse2,richesse3,richesse4)
+# tab_richesse$richesse_prob_range = richesse4
+# saveRDS(tab_richesse, file = "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/tab_richesse.rds")
+tab_richesse = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/tab_richesse.rds")
+
+summary(tab_richesse$richesse_prob_range)
+
+sum(tab_richesse$richesse_prob == tab_richesse$richesse_prob_range)
+
+sum(tab_richesse$richesse_prob_range < 300) / length(tab_richesse$richesse_prob_range)
 
 
 
 ggplot(tab_richesse) +
-  geom_histogram(aes(x=richesse1)) +
-  labs(  x = "Richesse par ha (SSDM binaire)", y = "Fréquence")
+  geom_histogram(aes(x=richesse_bin)) +
+  labs(  x = "Richesse spécifique (bSSDM)", y = "Nombre d'hectares") +
+  theme(text = element_text(size = 17))
 
 ggplot(tab_richesse) +
   geom_histogram(aes(x=richesse2)) +
@@ -897,54 +1083,207 @@ ggplot(tab_richesse) +
   labs(  x = "Richesse par ha (SSDM binaire et filtre de dispersion)", y = "Fréquence")
 
 ggplot(tab_richesse) +
-  geom_histogram(aes(x=richesse4)) +
-  labs(  x = "Richesse par ha (SSDM probabilité et filtre de dispersion)", y = "Fréquence")
-
-## corrélaion nb occ richesse 
-
-
-#### Test hypothèse nulle : pas d'effet des var env sur la distribution des espèces ####
-SSDM@diversity.map
-# regarder importance des var env dans la construction des modèles 
+  geom_histogram(aes(x=richesse_prob_range)) +
+  labs(  x = "Richesse spécifique (pSSDM-d)", y = "Nombre d'hectares") +
+  theme(text = element_text(size = 17))
 
 
+## corrélation richesse et var env 
+library(Hmisc)
+tab_env = readRDS ("D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Raster env/tab_env.rds")
+SSDM = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/ssdm_prob_range2.tif")
+
+richesse_bin = na.omit(values(SSDM))
+richesse_prob = na.omit(values(SSDM))
+richesse_bin_range = na.omit(values(SSDM))
+richesse_prob_range = na.omit(values(SSDM))
+
+tab_richesse = data.frame(richesse_bin,richesse_prob,richesse_bin_range,richesse_prob_range)
+saveRDS(tab_richesse, file = "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/tab_richesse.rds")
+
+for ( i in 1:7){
+  for ( j in 1:4){
+    print(cor.test(tab_env[,i],tab_richesse[,j]))
+  }
+}
+
+cor.test(tab_env$precipitation,tab_richesse$richesse4, method = "pearson")
+
+## anova substrat * richesse 
+library(lmtest)
+tab_richesse = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/tab_richesse.rds")
+tab_env = readRDS ("D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Raster env/tab_env.rds")
+
+tab_env$substrat = as.factor(tab_env$substrat)
+
+# richesse bin
+mod = lm(tab_richesse$richesse_bin ~ tab_env$substrat)
+
+shapiro.test(sample(residuals(mod), 5000)) # p-value < 2.2e-16 
+bptest(mod) # p-value < 2.2e-16
+dwtest(mod) #p-value < 2.2e-16 , autocorrélation oui
+
+anova(mod) # < 2.2e-16 ***
+
+kruskal.test(tab_richesse$richesse_bin ~ tab_env$substrat) # chi-squared = 428913, df = 2, p-value < 2.2e-16
+
+# richesse moyenne par substrat 
+moy = rep(0,3)
+for (i in 1:3){
+  tab = tab_richesse$richesse_prob_range
+  tab = tab[tab_env$substrat==(i-1)]
+  moy[i] = mean(tab)
+}
+
+sum(tab_env$substrat==3)
+
+
+table(tab_env$substrat)
+
+# richesse prob range
+mod2 = lm(tab_richesse$richesse_prob_range ~ tab_env$substrat)
+
+shapiro.test(sample(residuals(mod2), 5000)) # p-value < 2.2e-16 
+bptest(mod2) # p-value < 2.2e-16
+dwtest(mod2) #p-value < 2.2e-16 , autocorrélation oui
+
+anova(mod2) # < 2.2e-16 ***
+
+k2 =kruskal.test(tab_richesse$richesse_prob_range ~ tab_env$substrat) # chi-squared = 469716, df = 2, p-value < 2.2e-16
+k2$parameter
 
 #### Analyse richesse spécifique, sur SSDM ####
 
 ## avec méthode quantile (1/5 le plus élevé)
 par(mfrow=c(1,2))
-SSDM = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_45sp/SSDM_final2/Stack/Rasters/Diversity.tif")
+
+SSDM = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/ssdm_prob_range2.tif")
+plot(SSDM)
+SSDM_20 = SSDM
 plot(SSDM, main = "SSDM method pSSDM")
-lim_80 = quantile(SSDM, probs = c(0.8), names=F)
-SSDM[SSDM < lim_80] <- NA
-plot(SSDM, main = "20% plus riches")
+lim_80 = quantile(SSDM_20, probs = c(0.8), names=F)
+SSDM_20[SSDM_20 < lim_80] <- NA
+# writeRaster(SSDM_20, file = "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/ssdm_20_prob_range2.tif")
+
+SSDM_20 = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/ssdm_20_prob_range2.tif")
+
+plot(SSDM_20, main = "Distribution des 20% d'hectares les plus riches \n (pSSDM-d)")
+
+
+SSDM = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/ssdm_bin.tif")
+plot(SSDM)
+SSDM_20 = SSDM
+plot(SSDM, main = "SSDM method pSSDM")
+lim_80 = quantile(SSDM_20, probs = c(0.8), names=F)
+SSDM_20[SSDM_20 < lim_80] <- NA
+writeRaster(SSDM_20, file = "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/ssdm_20_bin.tif")
+
+SSDM_20 = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/ssdm_20_bin.tif")
+
+plot(SSDM_20, main = "Distribution des 20% d'hectares les plus riches \n (bSSDM)")
+
+
+valeurs =na.omit(values(SSDM_20))
+
+tab_richesse = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/tab_richesse.rds")
+tab_env = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Entrainement/Raster env/tab_env.rds")
+
+lim_80 = quantile(tab_richesse$richesse_bin, probs = c(0.8), names=F)
+tab_richesse$richesse_bin>lim_80
+
+
+tab = tab_env[tab_richesse$richesse_prob_range>=lim_80,]
+summary(tab)
+
+options(scipen=50,digits = 7)
+amplitude = rep(0,7)
+sd = rep(0,7)
+moy = rep (0,7)
+for(i in 1:7) {
+  amplitude[i] = max(tab[,i]) - min (tab[,i])
+  sd[i] = sd(tab[,i])
+  moy[i] = mean(tab[,i])
+}
 
 
 ## Zones plus riches // 3 différents milieux 
 holdridge_nc = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Raster_foret/Holdridge_CHELSA.tif")
+mask = readOGR("D:/Vanessa/Mes Documents/Stage Manon C/r/mask_rasters/mask_bon_crs.shp")
+
 plot(holdridge_nc)
+
+# hold = crop(holdridge_nc, mask)
+# hold = raster::mask(hold,mask)
+# 
+# hold_extent = setExtent(hold, extent(ssdm), keepres = F)
+# 
+# hold_res = resample(hold, ssdm , method = "ngb")
+# writeRaster(hold_res, file ="D:/Vanessa/Mes Documents/Stage Manon C/r/Raster_foret/hold_res.tif") 
+hold_res = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Raster_foret/hold_res.tif")
+hold_res_test = terra::rast(hold_res)
+
+names(hold_res_test) =  c("Milieu sec", "Milieu humide", "Milieu très humide")
+terra::plot(hold_res_test$hold_res, main = "Milieux de vie (Holdridge 1947) présents sur la Grande Terre", col = c("chocolate3","yellow","cyan3"))
+
+
+ssdm_b_riche = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/ssdm_20_bin.tif")
+hold_res_b = hold_res
+hold_res_b[!is.na(ssdm_b_riche)] = 4
+# table(values(hold_res_b))
+# hold_res_b = terra::rast(hold_res_b)
+plot(hold_res_b, col = c("chocolate3","yellow","cyan3","blueviolet"), main = "Répartition des zones les plus riches \n sur les milieux de vie (bSSDM)", legend = F)
+
+col2rgb("chocolate3")
+col2rgb("yellow")
+col2rgb("cyan3")
+col2rgb("blueviolet")
+
+
+
 table(values(holdridge_nc))
+table(values(hold_res_b))
+
+
+ssdm_pr_riche = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/ssdm_20_prob_range2.tif")
+hold_res_pr = hold_res
+hold_res_pr[!is.na(ssdm_pr_riche)] = 4
+# table(values(hold_res_pr))
+# hold_res_pr = terra::rast(hold_res_pr)
+plot(hold_res_pr, col = c("chocolate3","yellow","cyan3","red"), main = "Répartition des zones les plus riches \n sur les milieux de vie (pSSDM-d)", legend = F)
+
+
+
 # 1 : milieu sec dry
 # 2 : milieu humide moist
 # 3 : milieu très humide wet
 
-# holdridge_nc[! holdridge_nc == 1 ] = NA
-# plot(holdridge_nc)
-# writeRaster(holdridge_nc, file ="D:/Vanessa/Mes Documents/Stage Manon C/r/Raster_foret/holdridge1.tif" )
+# hold_res[! hold_res == 1 ] = NA
+# plot(hold_res)
+# writeRaster(hold_res, file ="D:/Vanessa/Mes Documents/Stage Manon C/r/Raster_foret/hold_res1.tif" )
 # 
-# holdridge_nc[! holdridge_nc == 2 ] = NA
-# plot(holdridge_nc)
-# writeRaster(holdridge_nc, file ="D:/Vanessa/Mes Documents/Stage Manon C/r/Raster_foret/holdridge2.tif" )
+# hold_res[! hold_res == 2 ] = NA
+# plot(hold_res)
+# writeRaster(hold_res, file ="D:/Vanessa/Mes Documents/Stage Manon C/r/Raster_foret/hold_res2.tif" , overwrite = T)
 # 
-# holdridge_nc[! holdridge_nc == 3 ] = NA
-# plot(holdridge_nc)
-# writeRaster(holdridge_nc, file ="D:/Vanessa/Mes Documents/Stage Manon C/r/Raster_foret/holdridge3.tif" )
+# hold_res[! hold_res == 3 ] = NA
+# plot(hold_res)
+# writeRaster(hold_res, file ="D:/Vanessa/Mes Documents/Stage Manon C/r/Raster_foret/hold_res3.tif" )
 
 holdridge1 = raster ("D:/Vanessa/Mes Documents/Stage Manon C/r/Raster_foret/holdridge1.tif" )
 holdridge2 = raster ("D:/Vanessa/Mes Documents/Stage Manon C/r/Raster_foret/holdridge2.tif" )
 holdridge3 = raster ("D:/Vanessa/Mes Documents/Stage Manon C/r/Raster_foret/holdridge3.tif" )
 mask = readOGR("D:/Vanessa/Mes Documents/Stage Manon C/r/mask_rasters/mask_bon_crs.shp")
 
+hold_res1 = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Raster_foret/hold_res1.tif" )
+hold_res2 = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Raster_foret/hold_res2.tif")
+hold_res3 = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Raster_foret/hold_res3.tif")
+
+length(na.omit(hold_res1))
+length(na.omit(hold_res2))
+length(na.omit(hold_res3))
+
+length(values(hold_res))
+length(values(ssdm_b))
 
 par(mfrow = c(1,3))
 plot(holdridge1)
@@ -953,32 +1292,285 @@ plot(holdridge3)
 
 par(mfrow = c(1,1))
 
-# milieu 1 sec 
-ssdm = raster ("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_713sp/SSDM_706_prob/Stack/Rasters/Diversity.tif")
+### ssddm bin 
+# milieu 1 sec richesse 
+ssdm_b = raster ("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/ssdm_bin.tif")
+plot(ssdm_b)
+length(na.omit(values(ssdm_b)))
+
+# proportion chaque milieu 
+hold_res = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Raster_foret/hold_res.tif")
+plot(hold_res)
+nb_cells = length(na.omit(values(hold_res)))
+
+(1702663-1674208) / 1702663
+
+
+sum(hold_res[hold_res]==1) / nb_cells
+sum(hold_res[hold_res]==2) / nb_cells
+sum(hold_res[hold_res]==3) / nb_cells
+
+sec = sum(hold_res[hold_res]==1)
+humide = sum(hold_res[hold_res]==2)
+tres_humide = sum(hold_res[hold_res]==3)
+
+sum(sec,humide,tres_humide)
+
+ssdm1 = crop(ssdm_b, hold_res1)
+ssdm1 = raster::mask(ssdm1, hold_res1)
+plot(ssdm1)
+
+richesse_dry_b = na.omit(values(ssdm1))
+
+# milieu 1 sec + riche 
+ssdm_b = raster ("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/ssdm_bin.tif")
+plot(ssdm_b)
+
+ssdm_b_riche = ssdm_b
+lim_80 = quantile(ssdm_b_riche, probs = c(0.8), names=F)
+ssdm_b_riche[ssdm_b_riche < lim_80] <- NA
+plot(ssdm_b_riche)
+
+
+
+ssdm1 = crop(ssdm_b_riche, hold_res1)
+ssdm1 = raster::mask(ssdm1, hold_res1)
+plot(ssdm1)
+
+length(ssdm3[!is.na(ssdm3)])/length(ssdm_b_riche[!is.na(ssdm_b_riche)])
+
+richesse_dry = na.omit(values(ssdm1))
+sum(richesse_dry<200)
+357799/length(richesse_dry)
+
+ssdm1_plot = ssdm1
+ssdm1_plot[! is.na(ssdm)] =0
+ssdm1_plot[! is.na(ssdm1)] =1
+
+plot(ssdm1_plot, col = c("antiquewhite1","grey"),main = "Cellules 20% les plus riches dans le milieu sec (dry)")
+
+# milieu humide 
+ssdm2 = crop(ssdm_b, hold_res2)
+ssdm2 = raster::mask(ssdm2, hold_res2)
+plot(ssdm2)
+
+richesse_moist_b = na.omit(values(ssdm2))
+
+
+#milieu humide + riche 
+ssdm2 = crop(ssdm_b_riche, hold_res2)
+ssdm2 = raster::mask(ssdm2, hold_res2)
+plot(ssdm2)
+richesse_moist = na.omit(values(ssdm2))
+# 
+# lim_80 = quantile(ssdm2, probs = c(0.8), names=F)
+# ssdm2[ssdm2 < lim_80] <- NA
+
+ssdm2_plot = ssdm2
+ssdm2_plot[! is.na(ssdm)] =0
+ssdm2_plot[! is.na(ssdm2)] =1
+
+plot(ssdm2_plot, col = c("antiquewhite1","yellow"),main = "Cellules 20% les plus riches dans le milieu humide (moist)")
+
+
+# milieu très humide 
+ssdm3 = crop(ssdm_b, hold_res3)
+ssdm3 = raster::mask(ssdm3, hold_res3)
+plot(ssdm_b)
+plot(ssdm3)
+
+richesse_wet_b = na.omit(values(ssdm3))
+
+# milieu très humide + riche 
+ssdm3 = crop(ssdm_b_riche, hold_res3)
+ssdm3 = raster::mask(ssdm3, hold_res3)
 plot(ssdm)
-plot(holdridge_nc)
+plot(ssdm3)
 
-ssdm[! holdridge_test==1]  = NA
+SSDM_plot_tot = ssdm_b_riche
+plot(ssdm_b_riche)
+SSDM_plot_tot[!is.na(ssdm_b_riche)] = NA
+SSDM_plot_tot[! is.na(ssdm1)] =1
+SSDM_plot_tot[! is.na(ssdm2)] =2
+SSDM_plot_tot[! is.na(ssdm3)] =3
+plot(SSDM_plot_tot, col = c("grey","yellow","chartreuse3"), legend = F, main = "Répartitions des milieux sur les zones les plus riches \n (bSSDM)")
+SSDM_plot_tot = as.factor(SSDM_plot_tot)
 
-ssdm[!holdridge1==1]=NA
-ssdm = crop(ssdm,holdridge_test)
-holdridge_test = crop(holdridge_test,ssdm)
-ssdm = mask(ssdm, holdridge_test)
+length(SSDM_plot_tot[SSDM_plot_tot==1]) / length(na.omit(values(ssdm_b_riche)))
+length(SSDM_plot_tot[SSDM_plot_tot==2]) / length(na.omit(values(ssdm_b_riche)))
+length(SSDM_plot_tot[SSDM_plot_tot==3]) / length(na.omit(values(ssdm_b_riche)))
 
-plot(test1)
+un = sum(SSDM_plot_tot[SSDM_plot_tot==1])
+deux = sum(SSDM_plot_tot[SSDM_plot_tot==2])
+trois = sum(SSDM_plot_tot[SSDM_plot_tot==3])
 
-ssdm[holdridge_test == 1] = NA
-test1 = holdridge_test
+sum(un,deux,trois)
 
-extend(holdridge1) <- extend(ssdm)
+table(values(SSDM_plot_tot))
 
-holdridge_test = crop(holdridge_nc, mask)
-holdridge_test = mask(holdridge_test, mask)
-plot(holdridge_test)
-table(values(holdridge_test))
+tar<-levels(SSDM_plot_tot)[[1]]
+tar[["landcover"]]<-c("Class1", "Class2")
+levels(SSDM_plot_tot)<-tar
 
-extend(mask)
-plot(mask)
+summary(values(SSDM_plot_tot))
+
+# lim_80 = quantile(ssdm3, probs = c(0.8), names=F)
+# ssdm3[ssdm3 < lim_80] <- NA
+
+
+ssdm3_plot = ssdm3
+ssdm3_plot[! is.na(ssdm)] =0
+ssdm3_plot[! is.na(ssdm3)] =1
+
+plot(ssdm3_plot, col = c("antiquewhite1","chartreuse3"), main = "Cellules 20% les plus riches dans le milieu très humide (wet)")
+
+# hist richesses bin
+
+tab_richesses_b = list(richesse_dry_b,richesse_moist_b, richesse_wet_b)
+# saveRDS(tab_richesses_b, file = "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/tab_richesses_b.rds")
+tab_richesses_b = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/tab_richesses_b.rds")
+
+sum(tab_richesses_b[[1]]<200)/length(tab_richesses_b[[1]])
+a = data.frame(tab_richesses_b[[1]])
+names(a)
+
+ggplot(data.frame(tab_richesses_b[[1]])) +
+  geom_histogram(aes(x=tab_richesses_b..1..)) +
+  # labs(  x = "Richesse par ha sur le milieu sec (bssdm)", y = "Abondance") +
+  labs(x="",y="") +
+  theme(text = element_text(size = 17)) +
+  theme(axis.text = element_text(size = 17)) +
+  coord_cartesian(xlim = c(0,650))
+
+ggplot(data.frame(tab_richesses_b[[2]])) +
+  geom_histogram(aes(x=tab_richesses_b..2..)) +
+  # labs(  x = "Richesse par ha sur le milieu humide (bssdm)", y = "Abondance") +
+  labs(x="",y="") +
+  theme(text = element_text(size = 17)) +
+  theme(axis.text = element_text(size = 17)) +
+  coord_cartesian(xlim = c(0,650))    
+
+ggplot(data.frame(tab_richesses_b[[3]])) +
+  geom_histogram(aes(x=tab_richesses_b..3..)) +
+  labs(x="",y="") +
+  # labs(  x = "Richesse par ha sur le milieu très humide (bssdm)", y = "Abondance") +
+  theme(text = element_text(size = 17)) +
+  theme(axis.text = element_text(size = 17)) +
+  coord_cartesian(xlim = c(0,650))
+
+### ssdm prob range 
+ssdm_pr = raster ("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/ssdm_prob_range2.tif")
+plot(ssdm_pr)
+
+length(ssdm3[!is.na(ssdm3)])/length(ssdm_pr_riche[!is.na(ssdm_pr_riche)])
+
+ssdm_pr_riche = ssdm_pr
+lim_80 = quantile(ssdm_pr_riche, probs = c(0.8), names=F)
+ssdm_pr_riche[ssdm_pr_riche < lim_80] <- NA
+plot(ssdm_pr_riche)
+
+# milieu 1 sec 
+ssdm1 = crop(ssdm_pr, hold_res1)
+ssdm1 = raster::mask(ssdm1, hold_res1)
+plot(ssdm1)
+richesse_dry_pr = na.omit(values(ssdm1))
+
+plot(ssdm1, main = "Cellules 20% les plus riches dans le milieu sec (dry)")
+
+sum(richesse_dry_pr<200)
+331056/length(richesse_dry_pr)
+
+# milieu 1 + riche 
+ssdm1 = crop(ssdm_pr_riche, hold_res1)
+ssdm1 = raster::mask(ssdm1, hold_res1)
+plot(ssdm1)
+richesse_dry_pr = na.omit(values(ssdm1))
+
+plot(ssdm1, main = "Cellules 20% les plus riches dans le milieu sec (dry)")
+
+sum(richesse_dry_pr<200)
+331056/length(richesse_dry_pr)
+
+# milieu humide 
+ssdm2 = crop(ssdm_pr_riche, hold_res2)
+ssdm2 = raster::mask(ssdm2, hold_res2)
+plot(ssdm2)
+richesse_moist_pr = na.omit(values(ssdm2))
+
+ssdm2 = crop(ssdm_pr, hold_res2)
+ssdm2 = raster::mask(ssdm2, hold_res2)
+plot(ssdm2)
+richesse_moist_pr = na.omit(values(ssdm2))
+
+lim_80 = quantile(ssdm2, probs = c(0.8), names=F)
+ssdm2[ssdm2 < lim_80] <- NA
+
+plot(ssdm2, main = "Cellules 20% les plus riches dans le milieu humide (moist)")
+
+
+# milieu très humide 
+ssdm3 = crop(ssdm_pr, hold_res3)
+ssdm3 = raster::mask(ssdm3, hold_res3)
+plot(ssdm3)
+richesse_wet_pr = na.omit(values(ssdm3))
+
+ssdm3 = crop(ssdm_pr_riche, hold_res3)
+ssdm3 = raster::mask(ssdm3, hold_res3)
+plot(ssdm3)
+richesse_wet_pr = na.omit(values(ssdm3))
+
+lim_80 = quantile(ssdm3, probs = c(0.8), names=F)
+ssdm3[ssdm3 < lim_80] <- NA
+
+plot(ssdm3, main = "Cellules 20% les plus riches dans le milieu très humide (wet)")
+
+plot_tot_pr = ssdm_pr_riche
+plot(plot_tot_pr)
+plot(plot_tot_pr, col=c("grey","yellow","chartreuse3"),  legend = F, main = "Répartitions des milieux sur les zones les plus riches \n (pSSDM avec filtre de dispersion)" )
+plot_tot_pr[!is.na(ssdm_pr_riche)] = NA
+plot_tot_pr[! is.na(ssdm1)] = 1
+plot_tot_pr[! is.na(ssdm2)] = 2
+plot_tot_pr[! is.na(ssdm3)] = 3
+
+length(plot_tot_pr[plot_tot_pr==1]) / length(na.omit(values(ssdm_pr_riche)))
+length(plot_tot_pr[plot_tot_pr==2]) / length(na.omit(values(ssdm_pr_riche)))
+length(plot_tot_pr[plot_tot_pr==3]) / length(na.omit(values(ssdm_pr_riche)))
+
+
+table(values(plot_tot_pr))
+
+tab_richesse_pr = list(richesse_dry_pr, richesse_moist_pr, richesse_wet_pr)
+# saveRDS(tab_richesse_pr, file = "D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/tab_richesses_pr.rds")
+tab_richesse_pr = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/tab_richesses_pr.rds")
+
+sum(tab_richesse_pr[[1]]<200)/length(tab_richesse_pr[[1]])
+names(data.frame(tab_richesse_pr[[1]]))
+
+summary(tab_richesse_pr[[3]])
+
+ggplot(data.frame(tab_richesse_pr[[1]])) +
+  geom_histogram(aes(x=tab_richesse_pr..1..)) +
+  # labs(  x = "Richesse par ha sur le milieu sec \n (pssdm et limite dispersion)", y = "Fréquence") +
+  labs(x="",y="") +
+  theme(text = element_text(size = 17)) +
+  theme(axis.text = element_text(size = 17)) +
+  coord_cartesian(xlim = c(0,650))
+
+ggplot(data.frame(tab_richesse_pr[[2]])) +
+  geom_histogram(aes(x=tab_richesse_pr..2..)) +
+  # labs(  x = "Richesse par ha sur le milieu humide \n (pssdm et limite de dispersion)", y = "Fréquence") +
+  labs(x="",y="") +
+  theme(text = element_text(size = 17)) +
+  theme(axis.text = element_text(size = 17)) +
+  coord_cartesian(xlim = c(0,650))
+
+ggplot(data.frame(tab_richesse_pr[[3]])) +
+  geom_histogram(aes(x=tab_richesse_pr..3..)) +
+  # labs(  x = "Richesse par ha sur le milieu très humide \n (pssdm et limite de dispersion)", y = "Fréquence") +
+  labs(x="",y="") +
+  theme(text = element_text(size = 17)) +
+  theme(axis.text = element_text(size = 17)) +
+  coord_cartesian(xlim = c(0,650))
 
 
 
@@ -999,11 +1591,49 @@ plot(hotspot$geometry)
 
 
 ## Crop SSDM avec foret actuelle ??  
-SSDM_div = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_45sp/SSDM_final2/Stack/Rasters/Diversity.tif")
+SSDM_div = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/ssdm_bin.tif")
 SSDM_actuel = crop(SSDM_div,actual_forest_crop)
-SSDM_actuel = mask(SSDM_div, actual_forest_crop)
+SSDM_actuel = raster::mask(SSDM_div, actual_forest_crop)
 plot(SSDM_actuel)
 plot(SSDM_div)
+lim_80 = quantile(SSDM_actuel, probs = c(0.8), names=F)
+SSDM_actuel[SSDM_actuel < lim_80] <- NA
+plot(SSDM_actuel)
+
+SSDM_actuel_deforest = crop(SSDM_actuel, SSDM_20)
+SSDM_actuel_deforest = raster::mask(SSDM_actuel_deforest, SSDM_20)
+SSDM_actuel_deforest[!is.na(SSDM_actuel_deforest)] = 1
+plot(SSDM_actuel_deforest, col = "red")
+
+## crop 20% avec foret actuelle
+SSDM_pr = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/ssdm_prob_range.tif")
+SSDM_20_pr = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/SSDM_final/ssdm_20_prob_range.tif")
+actual_forest_crop = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Raster_foret/actual_forest_crop.tif")
+prob_2100_perte = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Raster_foret/prob_2100_perte.tif")
+
+plot(SSDM_pr)
+plot(SSDM_20_pr)
+
+SSDM_20_pr_actuel = crop(SSDM_20_pr, actual_forest_crop )
+SSDM_20_pr_actuel = raster::mask(SSDM_20_pr_actuel, actual_forest_crop)
+plot(SSDM_20_pr_actuel)
+
+SSDM_20_pr_actuel_2100 = crop(SSDM_20_pr_actuel, prob_2100_perte )
+SSDM_20_pr_actuel_2100 = raster::mask(SSDM_20_pr_actuel_2100, prob_2100_perte )
+plot(SSDM_20_pr_actuel_2100)
+
+mask = readOGR("D:/Vanessa/Mes Documents/Stage Manon C/r/mask_rasters/mask_bon_crs.shp")
+plot(mask)
+
+
+SSDM_final = SSDM_20_pr_actuel
+
+SSDM_final[! is.na(SSDM_pr)] = 0
+SSDM_final[! is.na(SSDM_20_pr_actuel)] = 1
+SSDM_final[! is.na(SSDM_20_pr_actuel_2100)] = 2
+
+plot(SSDM_final, col = c("antiquewhite1","darkolivegreen2","red"), main = "Zones de conservation prioritaires \n sur les zones les plus riches de la forêt actuelle ")
+
 
 
 #### Mise évidence zone prioritaire de conservation (hotspot richesse / hotspot déforestation) ####
@@ -1029,11 +1659,19 @@ hotspot = readRDS("D:/Vanessa/Mes Documents/Stage Manon C/r/Final_1/Results/hots
 
 plot(hotspot)
 hotspot %>% 
-  filter(gistar > 0, pvalue < 0.05) %>% 
+  filter(gistar > 0, pvalue < 0.01) %>% 
   ggplot(aes(colour = kde, fill = kde)) +
   geom_sf() +
   scale_colour_distiller(aesthetics = c("colour", "fill"), direction = 1) +
   labs(title = "Hotspot of estimated deforestation in 2100") +
   theme_void()
 
+## methode quantile
+SSDM = raster("D:/Vanessa/Mes Documents/Stage Manon C/r/Raster_foret/prob_2100_perte.tif")
+SSDM_20 = SSDM
+SSDM_20 = aggregate(SSDM_20, fact = 10)
+plot(SSDM)
+lim_80 = quantile(SSDM_20, probs = c(0.8), names=F)
+SSDM_20[SSDM_20 < lim_80] <- NA
+plot(SSDM_20, main = "Cellules 20% les plus riches (pSSDM et filtre de dispersion)", col = "red")
 

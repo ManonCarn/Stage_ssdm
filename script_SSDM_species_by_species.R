@@ -91,6 +91,12 @@ closeAllConnections()
 
 
 # Loop for loading all the ESDM in a directory ----
+library(methods)
+library(raster)
+library(SSDM)
+library(parallel)
+library(doSNOW)
+startTime = Sys.time()
 ## modify load.esdm() function in SSDM package ##
 source("~/stage_ssdm/R_scripts/load_model_modif.R")
 # the call to environment() assures that the function will be able to call other hidden functions from the package.
@@ -98,7 +104,7 @@ environment(load_esdm_modif) <- environment(load_esdm)
 # The call to assignInNamespace() assures that other functions from the package will call your updated version of the function.
 assignInNamespace("load_esdm", load_esdm_modif, ns = "SSDM")
 # load directory
-path_load = '~/stage_ssdm/final/results/ESDM_copie'
+path_load = '~/stage_ssdm/final/results/ESDM'
 all_esdm_names <- list.files(path_load)
 # apply function (modified) to load all esdms
 list_all_esdm <- sapply(all_esdm_names, function(x) load_esdm_modif(x, path_load))
@@ -109,8 +115,8 @@ names(list_all_esdm) <- NULL
 
 # ESDM Stacking ----
 # define stacking arguments for methods
-list_methods_stacking <- list(name = NULL, method = "bSSDM", rep.B = 1000,
-                              Env = NULL, range = NULL, endemism = c("WEI", "Binary"),
+list_methods_stacking <- list(name = NULL, method = "bSSDM",
+                              Env = NULL, range = NULL, endemism = NULL,
                               eval = TRUE, verbose = TRUE, GUI = FALSE)
 # stacking based on esdms list
 # stack_test_3sp <- do.call(stacking, c(list_esdm_stacking, list_methods_stacking))
@@ -118,12 +124,266 @@ list_methods_stacking <- list(name = NULL, method = "bSSDM", rep.B = 1000,
 stack_final <- do.call(stacking, c(list_all_esdm, list_methods_stacking))
 
 # print(time_ESDM)
-# print(Sys.time() - startTime)
+
+
+save.stack(stack_final, name = "SSDM_final_tot", path = "~/stage_ssdm/final/results")
+
+saveRDS(stack_final, file = "~/stage_ssdm/final/results/stack_final_tot.rds")
+
+print(Sys.time() - startTime)
+
+
+# scp -r  manon@niamoto.ird.nc:~/stage_ssdm/final/results/ESDM "D:/Vanessa/Mes Documents/Stage Manon C/r/final_1/SSDM_final"   
+# scp -r  manon@niamoto.ird.nc:~/stage_ssdm/final/results/ssdm_prob_range2.tif "D:/Vanessa/Mes Documents/Stage Manon C/r/final_1/SSDM_final"   
+# scp -r  manon@niamoto.ird.nc:~/stage_ssdm/final/results/var_imp_sd.rds "D:/Vanessa/Mes Documents/Stage Manon C/r/final_1/SSDM_final"   
+
+## Stack les 3 stack 
+# path_load = '~/stage_ssdm/final/results'
+# ssdm1 = load_stack(name = "SSDM_final1",path = path_load )
+# ssdm1 = readRDS(paste0(path_load,"/stack_final1.rds"))
+# ssdm2 = load_stack(name = "SSDM_final2",path = path_load )
+# ssdm2 = readRDS(paste0(path_load,"/stack_final2.rds"))
+# ssdm3 = load_stack(name = "SSDM_final3",path = path_load )
+# ssdm3 = readRDS(paste0(path_load,"/stack_final3.rds"))
+# 
+# 
+# stack_finally = stacking(ssdm1,ssdm2,ssdm3,name = NULL, method = "bSSDM", rep.B = 1000,
+#                          Env = NULL, range = NULL, endemism = c("WEI", "Binary"),
+#                          eval = TRUE, verbose = TRUE, GUI = FALSE)
+# 
+# 
+# save.stack(stack_finally, name = "stack_final_tot", path = path_load)
+# saveRDS(stack_finally, file = paste0(path_load,"/stack_final_tot.rds"))
+
+# -> marche pas, fonction stack que pour objet sdm 
 
 
 
-save.stack(stack_final, name = "SSDM_713_bin", path = "~/stage_ssdm/final/results")
+## esdm avec range 
+library(raster)
+library(terra)
+library(sf)
+library(SSDM)
+library(rgdal)
+library(sfhotspot)
+library(rgeos)
+library(ggplot2)
+library(stats)
+library(tidyverse)
+library(dplyr)
 
-# scp -r  manon@niamoto.ird.nc:~/stage_ssdm/final/results/SSDM_final "D:/Vanessa/Mes Documents/Stage Manon C/r/final_1"   
+# source("~/stage_ssdm/R_scripts/load_model_modif.R")
+# environment(load_esdm_modif) <- environment(load_esdm)
+# assignInNamespace("load_esdm", load_esdm_modif, ns = "SSDM")
+path_load = '~/stage_ssdm/final/results/ESDM_range'
+all_esdm_names <- list.files(path_load)
+# list_all_esdm <- sapply(all_esdm_names, function(x) load_esdm_modif(x, path_load))
+# names(list_all_esdm) <- NULL
+# saveRDS(list_all_esdm, file = "~/stage_ssdm/final/data/list_all_esdm.rds")
+# list_all_esdm = readRDS("~/stage_ssdm/final/data/list_all_esdm.rds")
+
+
+buf = 20000 # 20km
+
+occ = readRDS("~/stage_ssdm/final/data/data_final2_thinning_names.rds")
+names(occ) = c("SPECIES","LONGITUDE","LATITUDE")
+occ = subset(occ, occ$SPECIES %in% all_esdm_names)
+
+for(i in 391:length(all_esdm_names)){
+  print(i)
+  sp_name = all_esdm_names[i]
+  raster_name = paste0(path_load,"/",sp_name,"/Rasters/Binary.tif")
+  esdm = raster::raster(raster_name)
+  tab = subset(occ, occ$SPECIES == sp_name ) # subset tab pour sp i
+  xy = data.frame(tab$LONGITUDE,tab$LATITUDE) # xy = 2 col long lat du fichier occ
+  # esdm = list_all_esdm[[i]] #  subset esdm i 
+  spdf <- SpatialPointsDataFrame(coords = xy, data = tab,
+                                 proj4string = CRS("+proj=longlat +datum=WGS84 +no_defs"))
+  
+  spdf <- spTransform(spdf, CRS = "+proj=utm +zone=58 +south +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0")
+  spdf <- st_as_sf(spdf) # modif spdf en sf
+  buffer_tmp <- st_buffer(spdf, dist = buf, bOnlyEdges =FALSE ) # buffer autour des occ
+  buffer_tmp <- st_transform(buffer_tmp, crs = crs(esdm))
+  r1 <- esdm
+  r3 <- terra::mask(r1, buffer_tmp, updatevalue = 0)
+  terra::writeRaster(r3, filename = raster_name, overwrite=T)
+  rm(list = c("r1","r3","spdf","buffer_tmp"))
+  # list_all_esdm[[i]]@projection[is.na(r3[])] <- 0
+}
+
+# saveRDS(list_all_esdm, file = "~/stage_ssdm/final/data/list_all_esdm_range2.rds" )
+
+
+
+## esdm prob avec range 
+library(raster)
+library(terra)
+library(sf)
+library(SSDM)
+library(rgdal)
+library(sfhotspot)
+library(rgeos)
+library(ggplot2)
+library(stats)
+library(tidyverse)
+library(dplyr)
+
+# source("~/stage_ssdm/R_scripts/load_model_modif.R")
+# environment(load_esdm_modif) <- environment(load_esdm)
+# assignInNamespace("load_esdm", load_esdm_modif, ns = "SSDM")
+path_load = '~/stage_ssdm/final/results/ESDM_range'
+all_esdm_names <- list.files(path_load)
+# list_all_esdm <- sapply(all_esdm_names, function(x) load_esdm_modif(x, path_load))
+# names(list_all_esdm) <- NULL
+# saveRDS(list_all_esdm, file = "~/stage_ssdm/final/data/list_all_esdm.rds")
+# list_all_esdm = readRDS("~/stage_ssdm/final/data/list_all_esdm.rds")
+
+
+buf = 20000 # 20km
+
+occ = readRDS("~/stage_ssdm/final/data/data_final2_thinning_names.rds")
+names(occ) = c("SPECIES","LONGITUDE","LATITUDE")
+occ = subset(occ, occ$SPECIES %in% all_esdm_names)
+
+for(i in 1:length(all_esdm_names)){
+  print(i)
+  sp_name = all_esdm_names[i]
+  raster_name = paste0(path_load,"/",sp_name,"/Rasters/Probability.tif")
+  esdm = raster::raster(raster_name)
+  tab = subset(occ, occ$SPECIES == sp_name ) # subset tab pour sp i
+  xy = data.frame(tab$LONGITUDE,tab$LATITUDE) # xy = 2 col long lat du fichier occ
+  # esdm = list_all_esdm[[i]] #  subset esdm i 
+  spdf <- SpatialPointsDataFrame(coords = xy, data = tab,
+                                 proj4string = CRS("+proj=longlat +datum=WGS84 +no_defs"))
+  
+  spdf <- spTransform(spdf, CRS = "+proj=utm +zone=58 +south +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0")
+  spdf <- st_as_sf(spdf) # modif spdf en sf
+  buffer_tmp <- st_buffer(spdf, dist = buf, bOnlyEdges =FALSE ) # buffer autour des occ
+  buffer_tmp <- st_transform(buffer_tmp, crs = crs(esdm))
+  r1 <- esdm
+  r3 <- terra::mask(r1, buffer_tmp, updatevalue = 0)
+  terra::writeRaster(r3, filename = raster_name, overwrite=T)
+  rm(list = c("r1","r3","spdf","buffer_tmp"))
+  # list_all_esdm[[i]]@projection[is.na(r3[])] <- 0
+}
+
+# saveRDS(list_all_esdm, file = "~/stage_ssdm/final/data/list_all_esdm_range2.rds" )
+
+
+
+
+library(raster)
+##  stack manuel binaire  
+path_load = '~/stage_ssdm/final/results/ESDM/'
+list_sdm <- list.files(path_load)
+for (i in 1:length(list_sdm)){
+  esdm = raster(paste0(path_load,list_sdm[i],"/Rasters/Binary.tif"))
+  if (i == 1){ 
+    ssdm = esdm
+  }else{
+    ssdm = ssdm + esdm
+  }
+  print(i)
+}
+
+writeRaster(ssdm, file = "~/stage_ssdm/final/results/ssdm_bin.tif", overwrite=T )
+
+#   stack manuel proba
+path_load = '~/stage_ssdm/final/results/ESDM/'
+list_sdm <- list.files(path_load)
+for (i in 1:length(list_sdm)){
+  esdm = raster(paste0(path_load,list_sdm[i],"/Rasters/Probability.tif"))
+  if (i == 1){ 
+    ssdm = esdm
+  }else{
+    ssdm = ssdm + esdm
+  }
+  print(i)
+}
+
+writeRaster(ssdm, file = "~/stage_ssdm/final/results/ssdm_prob.tif" , overwrite = T)
+
+
+#  stack manuel binaire range 
+path_load = '~/stage_ssdm/final/results/ESDM_range/'
+list_sdm <- list.files(path_load)
+for (i in 1:length(list_sdm)){
+  esdm = raster(paste0(path_load,list_sdm[i],"/Rasters/Binary.tif"))
+  if (i == 1){ 
+    ssdm = esdm
+  }else{
+    ssdm = ssdm + esdm
+  }
+  print(i)
+}
+
+writeRaster(ssdm, file = "~/stage_ssdm/final/results/ssdm_bin_range.tif" )
+
+#  stack manuel prob range 
+path_load = '~/stage_ssdm/final/results/ESDM_range/'
+list_sdm <- list.files(path_load)
+for (i in 1:length(list_sdm)){
+  esdm = raster(paste0(path_load,list_sdm[i],"/Rasters/Probability.tif"))
+  if (i == 1){ 
+    ssdm = esdm
+  }else{
+    ssdm = ssdm + esdm
+  }
+  print(i)
+}
+
+writeRaster(ssdm, file = "~/stage_ssdm/final/results/ssdm_prob_range2.tif" , overwrite = T)
+
+
+
+## Variable importance 
+path_load = '~/stage_ssdm/final/results/ESDM/'
+list_sdm <- list.files(path_load)
+for (i in 1:length(list_sdm)){
+  print(i)
+  var_imp = read.csv(paste0(path_load,list_sdm[i],"/Tables/VarImp.csv"))
+  if (i == 1){ 
+    tab = var_imp  
+    }else{
+      colnames(var_imp) <- colnames(tab)
+      tab = rbind(tab,var_imp)
+  }
+ 
+}
+
+
+tab <- tab[-1]
+summary_var_imp = summary(tab)
+var_imp_mean = apply(tab,2,mean)
+var_imp_sd = apply(tab,2,sd)
+
+saveRDS(var_imp_mean, file = "~/stage_ssdm/final/results/var_imp_mean.rds")
+saveRDS(var_imp_sd, file = "~/stage_ssdm/final/results/var_imp_sd.rds")
+saveRDS(summary_var_imp, file = "~/stage_ssdm/final/results/summary_var_imp.rds")
+
+
+## modèle évaluation 
+path_load = '~/stage_ssdm/final/results/ESDM/'
+list_sdm <- list.files(path_load)
+for (i in 1:length(list_sdm)){
+  print(i)
+  mod_eval = read.csv(paste0(path_load,list_sdm[i],"/Tables/esdmeval.csv"))
+  if (i == 1){ 
+    tab = mod_eval  
+  }else{
+    colnames(mod_eval) <- colnames(tab)
+    tab = rbind(tab,mod_eval)
+  }
+  
+}
+
+tab = tab[-1]
+summary_mod_eval = summary(tab)
+mod_eval_mean = apply(tab,2,mean, na.rm=TRUE)
+mod_eval_sd = apply(tab,2,sd)
+
+saveRDS(mod_eval_mean, file = "~/stage_ssdm/final/results/mod_eval_mean.rds")
+saveRDS(mod_eval_sd, file = "~/stage_ssdm/final/results/mod_eval_sd.rds")
+saveRDS(summary_mod_eval, file = "~/stage_ssdm/final/results/summary_mod_eval.rds")
 
 

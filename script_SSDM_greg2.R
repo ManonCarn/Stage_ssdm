@@ -35,7 +35,8 @@ sp_done <- list.files(path)
 Occ <- Occ[!Occ$SpeciesID %in% sp_done,] 
 
 # Clustering parameters 
-cores = detectCores()-1 # Number of cores
+# cores = detectCores()-1 # Number of cores
+cores = 5
 cat('Opening clusters,', cores, 'cores \n')
 cl = parallel::makeCluster(cores, outfile = "")
 cat('Exporting environment to clusters \n')
@@ -69,6 +70,8 @@ parallel::stopCluster(cl)
 time_ESDM = (Sys.time() - startTime)
 print(time_ESDM)
 
+startTime = Sys.time()
+
 # Loop for loading all the ESDM in a directory ----
 ## modify load.esdm() function in SSDM package ##
 source("~/stage_ssdm/R_scripts/load_model_modif.R")
@@ -96,12 +99,12 @@ list_methods_stacking <- list(name = NULL, method = "pSSDM", rep.B = 1000,
 
 stack_final <- do.call(stacking, c(list_all_esdm, list_methods_stacking))
 
-print(time_ESDM)
+# print(time_ESDM)
 print(Sys.time() - startTime)
 
 
 
-save.stack(stack_final, name = "SSDM_final", path = "~/stage_ssdm/test2/results")
+save.stack(stack_final, name = "SSDM_final", path = "~/stage_ssdm/test2/results/SSDM_45sp")
 
 # scp -r  manon@niamoto.ird.nc:~/stage_ssdm/test2/results/SSDM_test_100sp  "D:/Vanessa/Mes Documents/Stage Manon C/r/final_1"   
 
