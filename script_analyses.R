@@ -13,7 +13,6 @@ library(dplyr)
 
 # scp -r  manon@niamoto.ird.nc:~/stage_ssdm/final/results/ESDM_copie  "D:/Vanessa/Mes Documents/Stage Manon C/r/final_1/SSDM_713sp"   
 
-theme(text = element_text(size = 16))
 
 #### SI besoin de re load data arranged #### 
 # occurences dataset 
@@ -1125,6 +1124,8 @@ dwtest(mod) #p-value < 2.2e-16 , autocorrélation oui
 
 anova(mod) # < 2.2e-16 ***
 
+# pas toutes conditions donc -> non paramétrique 
+
 kruskal.test(tab_richesse$richesse_bin ~ tab_env$substrat) # chi-squared = 428913, df = 2, p-value < 2.2e-16
 
 # richesse moyenne par substrat 
@@ -1509,7 +1510,7 @@ plot(ssdm2, main = "Cellules 20% les plus riches dans le milieu humide (moist)")
 
 
 # milieu très humide 
-ssdm3 = crop(ssdm_pr, hold_res3)
+ssdm3 = crop(ssdm_pr, hold_res3) 
 ssdm3 = raster::mask(ssdm3, hold_res3)
 plot(ssdm3)
 richesse_wet_pr = na.omit(values(ssdm3))
